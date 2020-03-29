@@ -9,7 +9,7 @@ from enum import Enum, unique
 
 from snake.base import Direc, Map, PointType, Pos, Snake
 from snake.gui import GameWindow
-from snake.solver import DQNSolver, GreedySolver, HamiltonSolver
+from snake.solver import DQNSolver, GreedySolver, HamiltonSolver, RandomSolver, AlmightySolver
 
 
 @unique
@@ -29,7 +29,8 @@ class GameConf:
         self.mode = GameMode.NORMAL
 
         # Solver
-        self.solver_name = 'HamiltonSolver'  # Class name of the solver
+        # self.solver_name = 'HamiltonSolver'  # Class name of the solver
+        self.solver_name = 'AlmightySolver'
 
         # Size
         self.map_rows = 8
