@@ -16,7 +16,7 @@ class RandomSolver(BaseSolver):
         for _ in range(4):
             adj = head.all_adj()[rand]
             if self.map.is_safe(adj):
-                break;
+                break
             rand = (rand + 1) % 4
 
         return head.direc_to(adj)

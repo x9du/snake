@@ -9,3 +9,4 @@ from snake.solver.hamilton import HamiltonSolver
 from snake.solver.dqn import DQNSolver
 from snake.solver.random import RandomSolver
 from snake.solver.almighty import AlmightySolver
+from snake.solver.astar import AStarSolver
