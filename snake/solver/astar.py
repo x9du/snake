@@ -30,10 +30,18 @@ class AStarSolver(BaseSolver):
         # return length of shortest_path_to_food
 
         # Manhattan distance between pos and food
-        # return abs(pos.x - self.map.food.x) + abs(pos.y - self.map.food.y)
+        return abs(pos.x - self.map.food.x) + abs(pos.y - self.map.food.y)
 
         # Euclidean distance between pos and food
-        return math.sqrt(abs(pos.x - self.map.food.x) ** 2 + abs(pos.y - self.map.food.y) ** 2)
+        # return math.sqrt(abs(pos.x - self.map.food.x) ** 2 + abs(pos.y - self.map.food.y) ** 2)
+
+    def append_(self, node, list_):
+        for i in range(len(list_)):
+            if node.f <= list_[i].f:
+                list_.insert(i, node)
+                return 1
+        list_.append(node)
+        return 1
 
     def print_list(self, list_):
         print("[", end = "")
@@ -48,11 +56,11 @@ class AStarSolver(BaseSolver):
         print("\b]")
 
     def next_direc(self):
-        # head = self.snake.head()
-        self.path_len + 1
+        head = self.snake.head()
         if self.flag_new:
             self.astar()
         self.flag_new = False
+        self.path_len = self.path_len + 1
         if self.open_:
             self.open_.remove(self.least_node)
             for adj in self.least_node.pos.all_adj():
@@ -63,16 +71,17 @@ class AStarSolver(BaseSolver):
                 if self.map.food.x == adj.x and self.map.food.y == adj.y:
                     self.least_node = Node(adj, 1, self.least_node)
                     print("FOOD")
-                    print("head (%d, %d), least_node %d(%d, %d)" % (self.snake.head().x, self.snake.head().y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
-                    print(self.snake.head().direc_to(adj))
+                    print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
+                    print(head.direc_to(adj))
                     self.print_list_f(self.open_)
                     self.print_list(self.closed_)
                     print()
                     self.flag_new = True
-                    return self.snake.head().direc_to(adj)
+                    return head.direc_to(adj)
                 flag = False
                 open_dupe = -1
                 f = self.g(adj) + self.h(adj)
+                print("%d = %d + %d" % (f, self.g(adj), self.h(adj)), end = " ")
                 for i in range(len(self.open_)):
                     node = self.open_[i]
                     if node.pos.x == adj.x and node.pos.y == adj.y:
@@ -90,19 +99,20 @@ class AStarSolver(BaseSolver):
                     continue
                 if open_dupe != -1:
                     self.open_.pop(open_dupe)
-                self.open_.append(Node(adj, self.g(adj) + self.h(adj), self.least_node))
+                # self.open_.append(Node(adj, self.g(adj) + self.h(adj), self.least_node))
+                self.append_(Node(adj, self.g(adj) + self.h(adj), self.least_node), self.open_)
                 print("appended")
             self.closed_.append(self.least_node)
             if self.open_:
                 self.least_node = self.open_[0]
-                for node in self.open_:
-                    if node.f < self.least_node.f:
-                        self.least_node = node
-                print("head (%d, %d), least_node %d(%d, %d)" % (self.snake.head().x, self.snake.head().y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
-                print(self.snake.head().direc_to(self.least_node.pos))
+                # for node in self.open_:
+                #     if node.f < self.least_node.f:
+                #         self.least_node = node
+                print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
+                print(head.direc_to(self.least_node.pos))
                 self.print_list_f(self.open_)
                 self.print_list(self.closed_)
-                if self.snake.head().direc_to(self.least_node.pos) == Direc.NONE:
+                if head.direc_to(self.least_node.pos) == Direc.NONE:
                     print(self.snake.direc)
                     return self.snake.direc
                     # direc = Direc.RIGHT
@@ -127,7 +137,7 @@ class AStarSolver(BaseSolver):
                     #         direc = Direc.LEFT
                     # print(direc)
                     # return direc
-                return self.snake.head().direc_to(self.least_node.pos)
+                return head.direc_to(self.least_node.pos)
             else:
                 print("Default to ", end = "")
                 print(self.snake.direc)
