@@ -85,6 +85,12 @@ class Map:
         return self.is_inside(pos) and (self.point(pos).type == PointType.EMPTY or \
                                         self.point(pos).type == PointType.FOOD)
 
+    def is_snake(self, pos):
+        for i in range(6):
+            if self.point(pos).type == 104 + i:
+                return True
+        return False
+
     def is_full(self):
         """Check if the map is filled with the snake's bodies."""
         for i in range(1, self.num_rows - 1):

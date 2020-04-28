@@ -43,7 +43,7 @@ class GameConf:
         self.grid_pad_ratio = 0.25
 
         # Switch
-        self.show_grid_line = False
+        self.show_grid_line = True #False
         self.show_info_panel = True
 
         # Delay
