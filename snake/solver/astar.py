@@ -2,11 +2,13 @@ import math
 
 from snake.base import Direc, Pos, Map, Point
 from snake.solver.base import BaseSolver
+from snake.solver.path import PathSolver
 
 
 class AStarSolver(BaseSolver):
     def __init__(self, snake):
         super().__init__(snake)
+        self._path_solver = PathSolver(snake)
         self.open_ = [Node(self.snake.head(), 0, 0, 0, self.snake.head())]
         self.closed_ = []
         self.closed_dict = {}
@@ -146,8 +148,19 @@ class AStarSolver(BaseSolver):
             self.append_(least_node, self.closed_)
             self.closed_dict[least_node.pos] = least_node
         print("No path")
-        print(self.snake.direc)
-        return self.snake.direc
+        self.flag_new = True
+        self._path_solver.snake = self.snake
+        path_to_tail = self._path_solver.longest_path_to_tail()
+        if len(path_to_tail) > 0:
+            print(path_to_tail[0])
+            return path_to_tail[0]
+        else:
+            for adj in head.all_adj():
+                if self.map.is_safe(adj):
+                    print(head.direc_to(adj))
+                    return head.direc_to(adj)
+            print(self.snake.direc)
+            return self.snake.direc
 
 
 class Node:
