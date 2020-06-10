@@ -2,33 +2,21 @@ import math
 
 from snake.base import Direc, Pos, Map, Point
 from snake.solver.base import BaseSolver
-from snake.solver.path import PathSolver
 
 
 class AStarSolver(BaseSolver):
     def __init__(self, snake):
         super().__init__(snake)
-        # self._path_solver = PathSolver(snake)
-        self.open_ = [Node(self.snake.head(), 0, self.snake.head())]
+        self.open_ = [Node(self.snake.head(), 0, 0, 0, self.snake.head())]
         self.closed_ = []
-        self.least_node = self.open_[0]
+        self.closed_dict = {}
         self.flag_new = True
-        self.path_len = -1
+        self.path = []
 
-    def astar(self):
-        self.open_ = [Node(self.snake.head(), 0, self.snake.head())]
-        self.closed_ = []
-        self.least_node = self.open_[0]
-        self.path_len = -1
-
-    def g(self, pos):
-        return self.path_len + 1
-        # return len(self._path_solver.shortest_path_to_food())
+    def g(self, parent):
+        return parent.g + 1
 
     def h(self, pos):
-        # create virtual snake with head at pos and create PathSolver for that snake
-        # return length of shortest_path_to_food
-
         # Manhattan distance between pos and food
         return abs(pos.x - self.map.food.x) + abs(pos.y - self.map.food.y)
 
@@ -37,11 +25,17 @@ class AStarSolver(BaseSolver):
 
     def append_(self, node, list_):
         for i in range(len(list_)):
-            if node.f <= list_[i].f:
+            if node.f < list_[i].f:
+                list_.insert(i, node)
+                return 1
+            elif node.f == list_[i].f and node.g + self.euclidean_dist(node.pos, self.map.food) <= list_[i].g + self.euclidean_dist(list_[i].pos, self.map.food):
                 list_.insert(i, node)
                 return 1
         list_.append(node)
         return 1
+
+    def euclidean_dist(self, pos1, pos2):
+        return math.sqrt(abs(pos1.x - pos2.x) ** 2 + abs(pos1.y - pos2.y) ** 2)
 
     def print_list(self, list_):
         print("[", end = "")
@@ -55,97 +49,111 @@ class AStarSolver(BaseSolver):
             print("%d(%d, %d)" % (node.f, node.pos.x, node.pos.y), end=" ")
         print("\b]")
 
+    def get_path(self, pos1, pos2):
+        path = []
+        while pos1.x != pos2.x or pos1.y != pos2.y:
+            path.insert(0, pos2)
+            pos2 = self.closed_dict[pos2].parent
+        return path
+
     def next_direc(self):
         head = self.snake.head()
         if self.flag_new:
-            self.astar()
+            self.open_ = [Node(self.snake.head(), 0, 0, 0, self.snake.head())]
+            self.closed_ = []
+            self.closed_dict = {}
+            self.path = []
+        else:
+            if len(self.path) == 0:
+                print(self.snake.direc)
+                return self.snake.direc
+            elif len(self.path) > 1:
+                next_pos = self.path[0]
+                self.path.pop(0)
+                print(head.direc_to(next_pos))
+                return head.direc_to(next_pos)
+            else:
+                next_pos = self.path[0]
+                self.path.pop(0)
+                print(head.direc_to(next_pos))
+                print()
+                self.flag_new = True
+                return head.direc_to(next_pos)
         self.flag_new = False
-        self.path_len = self.path_len + 1
-        if self.open_:
-            self.open_.remove(self.least_node)
-            for adj in self.least_node.pos.all_adj():
-                print("(" + str(adj.x) + ", " + str(adj.y) + ")", end = " ")
+        while self.open_:
+            least_node = self.open_[0]
+            self.open_.remove(least_node)
+            print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, least_node.f, least_node.pos.x, least_node.pos.y))
+            self.print_list_f(self.open_)
+            self.print_list(self.closed_)
+            for adj in least_node.pos.all_adj():
+                print("(" + str(adj.x) + ", " + str(adj.y) + ")", end=" ")
                 if not self.map.is_safe(adj):
                     print("not safe")
                     continue
+                g = self.g(least_node)
+                h = self.h(adj)
+                f = g + h
+                print("%d = %d + %d" % (f, g, h), end=" ")
+                adj_node = Node(adj, g, h, f, least_node.pos)
                 if self.map.food.x == adj.x and self.map.food.y == adj.y:
-                    self.least_node = Node(adj, 1, self.least_node)
+                    self.append_(least_node, self.closed_)
+                    self.closed_dict[least_node.pos] = least_node
+                    least_node = adj_node
                     print("FOOD")
-                    print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
-                    print(head.direc_to(adj))
+                    print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, least_node.f, least_node.pos.x, least_node.pos.y))
                     self.print_list_f(self.open_)
                     self.print_list(self.closed_)
-                    print()
-                    self.flag_new = True
-                    return head.direc_to(adj)
+                    self.append_(least_node, self.closed_)
+                    self.closed_dict[least_node.pos] = least_node
+                    self.path = self.get_path(head, adj)
+                    print(self.path)
+                    if len(self.path) > 1:
+                        next_pos = self.path[0]
+                        self.path.pop(0)
+                        print(head.direc_to(next_pos))
+                        return head.direc_to(next_pos)
+                    else:
+                        next_pos = self.path[0]
+                        self.path.pop(0)
+                        print(head.direc_to(next_pos))
+                        print()
+                        self.flag_new = True
+                        return head.direc_to(next_pos)
                 flag = False
-                open_dupe = -1
-                f = self.g(adj) + self.h(adj)
-                print("%d = %d + %d" % (f, self.g(adj), self.h(adj)), end = " ")
                 for i in range(len(self.open_)):
                     node = self.open_[i]
                     if node.pos.x == adj.x and node.pos.y == adj.y:
                         if node.f < f:
                             flag = True
                         else:
-                            open_dupe = i
+                            self.open_.pop(i)
                         break
-                for node in self.closed_:
-                    if node.pos.x == adj.x and node.pos.y == adj.y and node.f < f:
-                        flag = True
+                for i in range(len(self.closed_)):
+                    node = self.closed_[i]
+                    if node.pos.x == adj.x and node.pos.y == adj.y:
+                        if node.f < f:
+                            flag = True
+                        else:
+                            self.closed_dict[node.pos] = adj_node
+                            # self.closed_.pop(i)
                         break
                 if flag:
                     print("flag")
                     continue
-                if open_dupe != -1:
-                    self.open_.pop(open_dupe)
-                # self.open_.append(Node(adj, self.g(adj) + self.h(adj), self.least_node))
-                self.append_(Node(adj, self.g(adj) + self.h(adj), self.least_node), self.open_)
+                self.append_(adj_node, self.open_)
                 print("appended")
-            self.closed_.append(self.least_node)
-            if self.open_:
-                self.least_node = self.open_[0]
-                # for node in self.open_:
-                #     if node.f < self.least_node.f:
-                #         self.least_node = node
-                print("head (%d, %d), least_node %d(%d, %d)" % (head.x, head.y, self.least_node.f, self.least_node.pos.x, self.least_node.pos.y))
-                print(head.direc_to(self.least_node.pos))
-                self.print_list_f(self.open_)
-                self.print_list(self.closed_)
-                if head.direc_to(self.least_node.pos) == Direc.NONE:
-                    print(self.snake.direc)
-                    return self.snake.direc
-                    # direc = Direc.RIGHT
-                    # flag_safe = True
-                    # if self.least_node.pos.x < head.x:
-                    #     for i in range(1, abs(self.least_node.pos.x - head.x) + 1):
-                    #         x = self.head.x - i
-                    #         y = self.head.y
-                    #         # if snake will run into its tail
-                    #         if Map.is_snake(Map.point(Pos(x, y)).type) and i - Pos.manhattan_dist(Pos(x, y), self.snake.tail()) <= 0:
-                    #             flag_safe = False
-                    #             break;
-                    #     if flag_safe:
-                    #         direc = Direc.UP
-                    #     elif self.least_node.pos.y < head.y:
-                    #         direc = Direc.LEFT
-                    # else:
-                    #     flag_safe = True
-                    #     if flag_safe:
-                    #         direc = Direc.DOWN
-                    #     elif self.least_node.pos.y < head.y:
-                    #         direc = Direc.LEFT
-                    # print(direc)
-                    # return direc
-                return head.direc_to(self.least_node.pos)
-            else:
-                print("Default to ", end = "")
-                print(self.snake.direc)
-                return self.snake.direc
+            self.append_(least_node, self.closed_)
+            self.closed_dict[least_node.pos] = least_node
+        print("No path")
+        print(self.snake.direc)
+        return self.snake.direc
 
 
 class Node:
-    def __init__(self, pos, f, parent):
+    def __init__(self, pos, g, h, f, parent):
         self.pos = pos
+        self.g = g
+        self.h = h
         self.f = f
         self.parent = parent
